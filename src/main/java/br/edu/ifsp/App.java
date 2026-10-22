@@ -17,12 +17,12 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("primary"), 640, 480);
-        stage.setScene(scene);
-        stage.show();
+        scene = new Scene(loadFXML("primary"), 800, 600);//tamanho da tel
+        stage.setScene(scene);//coloca a cena já janela
+        stage.show();//exibe a janela
     }
 
-    static void setRoot(String fxml) throws IOException {
+    static void setRoot(String fxml) throws IOException {//Troca a tela atual por outra
         scene.setRoot(loadFXML(fxml));
     }
 
@@ -32,7 +32,7 @@ public class App extends Application {
     }
 
     public static void main(String[] args) {
-        launch();
+        launch();//inicializa
     }
 
 }
