@@ -1,0 +1,53 @@
+{
+  "admins": [
+    {
+      "id": 1,
+      "senha": "admin123"
+    }
+  ],
+  "alunos": [
+    {
+      "nome": "Maria Silva",
+      "id": 1,
+      "email": "maria@email.com",
+      "status": true,
+      "senha": "1234",
+      "curso": "Engenharia"
+    }
+  ],
+  "servidores": [
+    {
+      "nome": "João Souza",
+      "id": 2,
+      "email": "joao@email.com",
+      "status": true,
+      "senha": "5678",
+      "tipo": "PROFESSOR"
+    }
+  ],
+  "livros": [
+    {
+      "id": 1,
+      "nome": "Dom Casmurro",
+      "categorias": ["Romance", "Clássico"],
+      "status": false
+    }
+  ],
+  "ebooks": [
+    {
+      "id": 1,
+      "nome": "Clean Code",
+      "categorias": ["Programação"],
+      "arquivo": "clean_code.pdf"
+    }
+  ],
+  "emprestimos": [
+    {
+      "idUsuario": 1,
+      "idLivro": 1,
+      "dataEmprestimo": "2026-11-01",
+      "dataPrevista": "2026-11-15",
+      "dataDevolucao": null
+    }
+  ]
+}

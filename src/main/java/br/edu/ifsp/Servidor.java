@@ -1,17 +1,20 @@
 package br.edu.ifsp;
 
-public class Servidor extends Usuario{
-    private TipoServidor tipo;
+// Servidor também herda de Usuario
+public class Servidor extends Usuario {
+    private TipoServidor tipo; // PROFESSOR ou TECNICO_ADMINISTRATIVO
 
-    public Servidor(String nome, int id, String email, String status, String senha, TipoServidor tipo){
-        super(nome, id, email, status, senha);
+    public Servidor(String nome, int id, String email, boolean status, String senha, TipoServidor tipo) {
+        super(nome, id, email, status, senha); // dados comuns vão para Usuario
         this.tipo = tipo;
     }
 
-    public TipoServidor getTipo(){
+    public TipoServidor getTipo() {
         return tipo;
     }
-    public boolean isProfessor(){
+
+    // true se o servidor for professor
+    public boolean isProfessor() {
         return tipo == TipoServidor.PROFESSOR;
     }
 }
