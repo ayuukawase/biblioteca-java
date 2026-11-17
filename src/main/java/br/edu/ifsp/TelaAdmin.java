@@ -1,0 +1,213 @@
+package br.edu.ifsp;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
+
+// Tela do administrador: livros (adicionar/excluir), fazer empréstimo e ver empréstimos.
+public class TelaAdmin extends BorderPane {
+
+    private final Admin admin;
+    private final Biblioteca b = Biblioteca.getInstance();
+
+    private final TableView<Livro> tabelaLivros = new TableView<>();
+    private final TableView<Emprestimo> tabelaEmprestimos = new TableView<>();
+    private final ComboBox<Usuario> comboUsuario = new ComboBox<>();
+    private final ComboBox<Livro> comboLivro = new ComboBox<>();
+
+    public TelaAdmin(Admin admin) {
+        this.admin = admin;
+
+        setTop(Estilo.cabecalho("Biblioteca — Administrador", App::mostrarLogin));
+
+        TabPane abas = new TabPane(criarAbaLivros(), criarAbaEmprestar(), criarAbaEmprestimos());
+        abas.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE); // sem "x" nas abas
+        setCenter(abas);
+
+        atualizar();
+    }
+
+    // ---------- Aba 1: Livros ----------
+    private Tab criarAbaLivros() {
+        tabelaLivros.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabelaLivros.setPlaceholder(new Label("Nenhum livro cadastrado."));
+        tabelaLivros.getColumns().addAll(
+                Estilo.<Livro>coluna("ID", l -> String.valueOf(l.getId())),
+                Estilo.<Livro>coluna("Título", Livro::getNome),
+                Estilo.<Livro>coluna("Categorias", l -> String.join(", ", l.getCategorias())),
+                Estilo.<Livro>coluna("Situação", l -> l.isStatus() ? "Disponível" : "Emprestado"));
+        VBox.setVgrow(tabelaLivros, Priority.ALWAYS);
+
+        TextField campoNome = new TextField();
+        campoNome.setPromptText("Título do livro");
+        HBox.setHgrow(campoNome, Priority.ALWAYS);
+
+        TextField campoCategorias = new TextField();
+        campoCategorias.setPromptText("Categorias, separadas por vírgula");
+        HBox.setHgrow(campoCategorias, Priority.ALWAYS);
+
+        Button adicionar = Estilo.botao("Adicionar livro");
+        adicionar.setOnAction(e -> {
+            String nome = campoNome.getText().trim();
+            if (nome.isEmpty()) {
+                Estilo.aviso(AlertType.WARNING, "Digite o título do livro.");
+                return;
+            }
+            // "Romance, Clássico" -> ["Romance", "Clássico"]
+            List<String> categorias = new ArrayList<>();
+            for (String c : campoCategorias.getText().split(",")) {
+                if (!c.trim().isEmpty()) categorias.add(c.trim());
+            }
+            admin.criarLivro(new Livro(proximoIdLivro(), nome, categorias, true)); // true = disponível
+            campoNome.clear();
+            campoCategorias.clear();
+            atualizar();
+        });
+
+        Button excluir = Estilo.botaoPerigo("Excluir livro selecionado");
+        excluir.setOnAction(e -> {
+            Livro livro = tabelaLivros.getSelectionModel().getSelectedItem();
+            if (livro == null) {
+                Estilo.aviso(AlertType.WARNING, "Selecione um livro na tabela.");
+                return;
+            }
+            if (!livro.isStatus()) {
+                Estilo.aviso(AlertType.WARNING, "Este livro está emprestado. Espere a devolução para excluir.");
+                return;
+            }
+            if (Estilo.confirmar("Excluir \"" + livro.getNome() + "\"?")) {
+                admin.deletarLivro(livro.getId());
+                atualizar();
+            }
+        });
+
+        HBox formulario = new HBox(10, campoNome, campoCategorias, adicionar);
+        VBox conteudo = new VBox(12, tabelaLivros, formulario, excluir);
+        conteudo.setPadding(new Insets(16));
+        return new Tab("Livros", conteudo);
+    }
+
+    // ---------- Aba 2: Fazer empréstimo ----------
+    private Tab criarAbaEmprestar() {
+        comboUsuario.setPromptText("Escolha o usuário");
+        comboUsuario.setMaxWidth(Double.MAX_VALUE);
+        comboUsuario.setConverter(new StringConverter<>() { // como cada item aparece escrito
+            @Override public String toString(Usuario u) {
+                if (u == null) return "";
+                String tipo = (u instanceof Aluno) ? "aluno" : "servidor";
+                return u.getNome() + " (" + tipo + ", id " + u.getId() + ")";
+            }
+            @Override public Usuario fromString(String s) { return null; }
+        });
+
+        comboLivro.setPromptText("Escolha o livro disponível");
+        comboLivro.setMaxWidth(Double.MAX_VALUE);
+        comboLivro.setConverter(new StringConverter<>() {
+            @Override public String toString(Livro l) {
+                return l == null ? "" : l.getNome() + " (id " + l.getId() + ")";
+            }
+            @Override public Livro fromString(String s) { return null; }
+        });
+
+        Button emprestar = Estilo.botao("Registrar empréstimo");
+        emprestar.setOnAction(e -> {
+            Usuario usuario = comboUsuario.getValue();
+            Livro livro = comboLivro.getValue();
+            if (usuario == null || livro == null) {
+                Estilo.aviso(AlertType.WARNING, "Escolha o usuário e o livro.");
+                return;
+            }
+            Emprestimo emprestimo = usuario.pegarLivro(livro); // null se suspenso ou indisponível
+            if (emprestimo == null) {
+                Estilo.aviso(AlertType.ERROR, "Não foi possível emprestar: o usuário está suspenso ou o livro está indisponível.");
+            } else {
+                Estilo.aviso(AlertType.INFORMATION, "Empréstimo registrado. Devolução até "
+                        + Estilo.data(emprestimo.getDataPrevista()) + ".");
+            }
+            atualizar();
+        });
+
+        VBox conteudo = new VBox(12, new Label("Usuário"), comboUsuario, new Label("Livro"), comboLivro, emprestar);
+        conteudo.setPadding(new Insets(16));
+        conteudo.setMaxWidth(520);
+
+        BorderPane moldura = new BorderPane(); // mantém o formulário alinhado à esquerda, sem esticar
+        moldura.setLeft(conteudo);
+        return new Tab("Fazer empréstimo", moldura);
+    }
+
+    // ---------- Aba 3: Empréstimos ----------
+    private Tab criarAbaEmprestimos() {
+        tabelaEmprestimos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabelaEmprestimos.setPlaceholder(new Label("Nenhum empréstimo registrado."));
+        tabelaEmprestimos.getColumns().addAll(
+                Estilo.<Emprestimo>coluna("Usuário", e -> {
+                    Usuario u = b.buscarUsuario(e.getIdUsuario());
+                    return u != null ? u.getNome() : "(id " + e.getIdUsuario() + ")";
+                }),
+                Estilo.<Emprestimo>coluna("Livro", e -> {
+                    Livro l = b.buscarLivro(e.getIdLivro());
+                    return l != null ? l.getNome() : "(livro removido)";
+                }),
+                Estilo.<Emprestimo>coluna("Emprestado em", e -> Estilo.data(e.getDataEmprestimo())),
+                Estilo.<Emprestimo>coluna("Devolver até", e -> Estilo.data(e.getDataPrevista())),
+                Estilo.<Emprestimo>coluna("Devolvido em", e -> Estilo.data(e.getDataDevolucao())),
+                Estilo.<Emprestimo>coluna("Situação", Estilo::situacao));
+
+        VBox conteudo = new VBox(tabelaEmprestimos);
+        VBox.setVgrow(tabelaEmprestimos, Priority.ALWAYS);
+        conteudo.setPadding(new Insets(16));
+        return new Tab("Empréstimos", conteudo);
+    }
+
+    // ---------- Utilitários ----------
+
+    // Recarrega tudo que aparece na tela a partir dos dados
+    private void atualizar() {
+        tabelaLivros.setItems(FXCollections.observableArrayList(b.getLivros()));
+
+        List<Emprestimo> emprestimos = new ArrayList<>(b.getEmprestimos());
+        Collections.reverse(emprestimos); // mais recentes primeiro
+        tabelaEmprestimos.setItems(FXCollections.observableArrayList(emprestimos));
+
+        List<Usuario> usuarios = new ArrayList<>();
+        usuarios.addAll(b.getAlunos());
+        usuarios.addAll(b.getServidores());
+        comboUsuario.setValue(null);
+        comboUsuario.setItems(FXCollections.observableArrayList(usuarios));
+
+        List<Livro> disponiveis = new ArrayList<>();
+        for (Livro l : b.getLivros()) {
+            if (l.isStatus()) disponiveis.add(l);
+        }
+        comboLivro.setValue(null);
+        comboLivro.setItems(FXCollections.observableArrayList(disponiveis));
+
+        tabelaLivros.refresh();
+        tabelaEmprestimos.refresh();
+    }
+
+    // Novo livro recebe o maior id existente + 1
+    private int proximoIdLivro() {
+        int maior = 0;
+        for (Livro l : b.getLivros()) {
+            if (l.getId() > maior) maior = l.getId();
+        }
+        return maior + 1;
+    }
+}

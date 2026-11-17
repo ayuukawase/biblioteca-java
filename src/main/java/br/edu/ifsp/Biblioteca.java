@@ -17,7 +17,8 @@ import java.util.List;
 // Os nomes dos atributos abaixo são os mesmos nomes das chaves do JSON.
 public class Biblioteca {
 
-    private static final Path ARQUIVO = Paths.get("dados", "biblioteca.json"); // onde o JSON fica
+    // Onde o JSON fica: pasta "dados" na raiz do projeto, arquivo Biblioteca.json
+    private static final Path ARQUIVO = Paths.get("Biblioteca.json");
 
     // Gson é a biblioteca que converte JSON <-> objetos Java
     private static final Gson GSON = new GsonBuilder()
@@ -58,12 +59,15 @@ public class Biblioteca {
     // Grava os dados atuais no arquivo JSON (chame depois de qualquer alteração)
     public void salvar() {
         try {
-            Files.createDirectories(ARQUIVO.getParent());           // cria a pasta "dados" se não existir
+            Path pasta = ARQUIVO.getParent();                           // null quando o arquivo está na raiz
+            if (pasta != null) {
+                Files.createDirectories(pasta);                         // só cria a pasta se existir uma
+            }
             try (Writer escritor = Files.newBufferedWriter(ARQUIVO, StandardCharsets.UTF_8)) {
-                GSON.toJson(this, escritor);                        // objeto -> JSON
+                GSON.toJson(this, escritor);                            // objeto -> JSON
             }
         } catch (IOException e) {
-            e.printStackTrace();                                    // mostra o erro no console
+            e.printStackTrace();
         }
     }
 
@@ -74,6 +78,26 @@ public class Biblioteca {
     public List<Livro> getLivros()           { return livros; }
     public List<EBook> getEbooks()           { return ebooks; }
     public List<Emprestimo> getEmprestimos() { return emprestimos; }
+
+    // ---------- Login ----------
+    // Devolve o Admin com esse id e senha, ou null se não existir
+    public Admin autenticarAdmin(int id, String senha) {
+        for (Admin a : admins) {
+            if (a.getId() == id && a.getSenha().equals(senha)) return a;
+        }
+        return null;
+    }
+
+    // Devolve o Aluno ou Servidor com esse id e senha, ou null se não existir
+    public Usuario autenticarUsuario(int id, String senha) {
+        for (Aluno a : alunos) {
+            if (a.getId() == id && a.getSenha().equals(senha)) return a;
+        }
+        for (Servidor s : servidores) {
+            if (s.getId() == id && s.getSenha().equals(senha)) return s;
+        }
+        return null;
+    }
 
     // ---------- Buscas por id ----------
     // Procura entre alunos e servidores (ambos são Usuario)
@@ -101,10 +125,4 @@ public class Biblioteca {
         return null;
     }
 
-    public Admin buscarAdmin(int id) {
-        for (Admin a : admins) {
-            if (a.getId() == id) return a;
-        }
-        return null;
-    }
 }

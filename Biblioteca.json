@@ -7,38 +7,69 @@
   ],
   "alunos": [
     {
+      "curso": "Engenharia",
       "nome": "Maria Silva",
       "id": 1,
       "email": "maria@email.com",
       "status": true,
-      "senha": "1234",
-      "curso": "Engenharia"
+      "senha": "1234"
     }
   ],
   "servidores": [
     {
+      "tipo": "PROFESSOR",
       "nome": "João Souza",
       "id": 2,
       "email": "joao@email.com",
       "status": true,
-      "senha": "5678",
-      "tipo": "PROFESSOR"
+      "senha": "5678"
     }
   ],
   "livros": [
     {
       "id": 1,
       "nome": "Dom Casmurro",
-      "categorias": ["Romance", "Clássico"],
+      "categorias": [
+        "Romance",
+        "Clássico"
+      ],
+      "status": true
+    },
+    {
+      "id": 2,
+      "nome": "Percy Jackson",
+      "categorias": [
+        "Fantasia",
+        "Aventura"
+      ],
       "status": false
+    },
+    {
+      "id": 3,
+      "nome": "Olhos d'Água",
+      "categorias": [
+        "Ficção"
+      ],
+      "status": true
     }
   ],
   "ebooks": [
     {
       "id": 1,
       "nome": "Clean Code",
-      "categorias": ["Programação"],
-      "arquivo": "clean_code.pdf"
+      "categorias": [
+        "Programação"
+      ],
+      "arquivo": "books/clean_code.pdf"
+    },
+    {
+      "id": 2,
+      "nome": "Memórias póstumas de Brás Cubas",
+      "categorias": [
+        "Romance",
+        "Ficção"
+      ],
+      "arquivo": "books/clean_code.pdf"
     }
   ],
   "emprestimos": [
@@ -47,7 +78,26 @@
       "idLivro": 1,
       "dataEmprestimo": "2026-11-01",
       "dataPrevista": "2026-11-15",
-      "dataDevolucao": null
+      "dataDevolucao": "2026-11-16"
+    },
+    {
+      "idUsuario": 1,
+      "idLivro": 1,
+      "dataEmprestimo": "2026-11-16",
+      "dataPrevista": "2026-11-30",
+      "dataDevolucao": "2026-11-16"
+    },
+    {
+      "idUsuario": 1,
+      "idLivro": 1,
+      "dataEmprestimo": "2026-11-16",
+      "dataPrevista": "2026-11-30"
+    },
+    {
+      "idUsuario": 2,
+      "idLivro": 2,
+      "dataEmprestimo": "2026-11-16",
+      "dataPrevista": "2026-11-30"
     }
   ]
 }

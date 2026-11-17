@@ -1,38 +1,56 @@
 package br.edu.ifsp;
 
+import java.io.File;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
+import javafx.application.HostServices;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
 
-import java.io.IOException;
+import java.awt.Desktop;
+import javafx.application.Platform;
 
 /**
- * JavaFX App
+ * Ponto de entrada. Sempre abre a tela de login primeiro
+ * e sabe trocar entre as telas do sistema.
  */
 public class App extends Application {
 
-    private static Scene scene;
+    private static Stage palco;            // a janela
+    private static HostServices servicos;  // usado para abrir arquivos (PDF do e-book)
 
     @Override
-    public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("primary"), 800, 600);//tamanho da tel
-        stage.setScene(scene);//coloca a cena já janela
-        stage.show();//exibe a janela
+    public void start(Stage stage) {
+        palco = stage;
+        servicos = getHostServices();
+        stage.setTitle("Biblioteca");
+        mostrarLogin();                    // a primeira tela é sempre o login
+        stage.show();
     }
 
-    static void setRoot(String fxml) throws IOException {//Troca a tela atual por outra
-        scene.setRoot(loadFXML(fxml));
+    public static void mostrarLogin()               { trocar(new Login(), 440, 480); }
+    public static void mostrarAdmin(Admin admin)    { trocar(new TelaAdmin(admin), 980, 640); }
+    public static void mostrarUsuario(Usuario u)    { trocar(new TelaUsuario(u), 980, 640); }
+
+    // Coloca outra tela dentro da janela
+    private static void trocar(Parent raiz, double largura, double altura) {
+        palco.setScene(new Scene(raiz, largura, altura));
+        palco.sizeToScene();
+        palco.centerOnScreen();
     }
 
-    private static Parent loadFXML(String fxml) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(fxml + ".fxml"));
-        return fxmlLoader.load();
+    // Abre o arquivo do e-book no programa padrão do computador (leitor de PDF etc.)
+    public static void abrirArquivo(String caminho) {
+        File arquivo = new File(caminho);
+        if (!arquivo.exists()) {
+            Estilo.aviso(AlertType.ERROR, "Arquivo não encontrado:\n" + arquivo.getAbsolutePath());
+            return;
+        }
+        servicos.showDocument(arquivo.toURI().toString());
     }
 
     public static void main(String[] args) {
-        launch();//inicializa
+        launch();
     }
-
 }
