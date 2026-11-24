@@ -11,7 +11,7 @@
       "nome": "Maria Silva",
       "id": 1,
       "email": "maria@email.com",
-      "status": true,
+      "status": false,
       "senha": "1234"
     }
   ],
@@ -46,7 +46,7 @@
     },
     {
       "id": 3,
-      "nome": "Olhos d'Água",
+      "nome": "Olhos d\u0027Água",
       "categorias": [
         "Ficção"
       ],
@@ -91,13 +91,20 @@
       "idUsuario": 1,
       "idLivro": 1,
       "dataEmprestimo": "2026-11-16",
-      "dataPrevista": "2026-11-30"
+      "dataPrevista": "2026-11-30",
+      "dataDevolucao": "2026-11-24"
     },
     {
       "idUsuario": 2,
       "idLivro": 2,
       "dataEmprestimo": "2026-11-16",
       "dataPrevista": "2026-11-30"
+    },
+    {
+      "idUsuario": 1,
+      "idLivro": 1,
+      "dataEmprestimo": "2026-11-24",
+      "dataPrevista": "2026-12-08"
     }
   ]
 }

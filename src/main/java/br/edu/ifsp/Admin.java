@@ -67,6 +67,16 @@ public class Admin {
         }
     }
 
+    // Reativa o usuário (status = true); ele volta a poder pegar livros
+    public void reativarUsuario(int idUsuario) {
+        Biblioteca b = Biblioteca.getInstance();
+        Usuario u = b.buscarUsuario(idUsuario);
+        if (u != null) {
+            u.setStatus(true);
+            b.salvar();
+        }
+    }
+
     // Remove o usuário (aluno ou servidor) com o id informado
     public void deletarUsuario(int idUsuario) {
         Biblioteca b = Biblioteca.getInstance();

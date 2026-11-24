@@ -19,7 +19,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
-// Tela do administrador: livros (adicionar/excluir), fazer empréstimo e ver empréstimos.
+// Tela do administrador: livros (adicionar/excluir), fazer empréstimo, ver empréstimos
+// suspender/reativar usuários e gerenciar e-books (adicionar/atualizar/excluir).
 public class TelaAdmin extends BorderPane {
 
     private final Admin admin;
@@ -27,6 +28,8 @@ public class TelaAdmin extends BorderPane {
 
     private final TableView<Livro> tabelaLivros = new TableView<>();
     private final TableView<Emprestimo> tabelaEmprestimos = new TableView<>();
+    private final TableView<Usuario> tabelaUsuarios = new TableView<>();
+    private final TableView<EBook> tabelaEbooks = new TableView<>();
     private final ComboBox<Usuario> comboUsuario = new ComboBox<>();
     private final ComboBox<Livro> comboLivro = new ComboBox<>();
 
@@ -35,7 +38,7 @@ public class TelaAdmin extends BorderPane {
 
         setTop(Estilo.cabecalho("Biblioteca — Administrador", App::mostrarLogin));
 
-        TabPane abas = new TabPane(criarAbaLivros(), criarAbaEmprestar(), criarAbaEmprestimos());
+        TabPane abas = new TabPane(criarAbaLivros(), criarAbaEmprestar(), criarAbaEmprestimos(), criarAbaUsuarios(), criarAbaEbooks());
         abas.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE); // sem "x" nas abas
         setCenter(abas);
 
@@ -175,6 +178,145 @@ public class TelaAdmin extends BorderPane {
         return new Tab("Empréstimos", conteudo);
     }
 
+    // ---------- Aba 4: Usuários (suspender / reativar) ----------
+    private Tab criarAbaUsuarios() {
+        tabelaUsuarios.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabelaUsuarios.setPlaceholder(new Label("Nenhum usuário cadastrado."));
+        tabelaUsuarios.getColumns().addAll(
+                Estilo.<Usuario>coluna("ID", u -> String.valueOf(u.getId())),
+                Estilo.<Usuario>coluna("Nome", Usuario::getNome),
+                Estilo.<Usuario>coluna("Tipo", u -> (u instanceof Aluno) ? "Aluno" : "Servidor"),
+                Estilo.<Usuario>coluna("E-mail", Usuario::getEmail),
+                Estilo.<Usuario>coluna("Situação", u -> u.isStatus() ? "Ativo" : "Suspenso"));
+        VBox.setVgrow(tabelaUsuarios, Priority.ALWAYS);
+
+        Button suspender = Estilo.botaoPerigo("Suspender");
+        suspender.setOnAction(e -> {
+            Usuario usuario = tabelaUsuarios.getSelectionModel().getSelectedItem();
+            if (usuario == null) {
+                Estilo.aviso(AlertType.WARNING, "Selecione um usuário na tabela.");
+                return;
+            }
+            if (!usuario.isStatus()) {
+                Estilo.aviso(AlertType.INFORMATION, "Este usuário já está suspenso.");
+                return;
+            }
+            admin.suspenderUsuario(usuario.getId()); // grava no JSON
+            atualizar();
+        });
+
+        Button reativar = Estilo.botao("Reativar");
+        reativar.setOnAction(e -> {
+            Usuario usuario = tabelaUsuarios.getSelectionModel().getSelectedItem();
+            if (usuario == null) {
+                Estilo.aviso(AlertType.WARNING, "Selecione um usuário na tabela.");
+                return;
+            }
+            if (usuario.isStatus()) {
+                Estilo.aviso(AlertType.INFORMATION, "Este usuário já está ativo.");
+                return;
+            }
+            admin.reativarUsuario(usuario.getId()); // grava no JSON
+            atualizar();
+        });
+
+        HBox botoes = new HBox(10, suspender, reativar);
+        VBox conteudo = new VBox(12, tabelaUsuarios, botoes);
+        conteudo.setPadding(new Insets(16));
+        return new Tab("Usuários", conteudo);
+    }
+
+    // ---------- Aba 5: E-books (adicionar / atualizar / excluir) ----------
+    private Tab criarAbaEbooks() {
+        tabelaEbooks.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabelaEbooks.setPlaceholder(new Label("Nenhum e-book cadastrado."));
+        tabelaEbooks.getColumns().addAll(
+                Estilo.<EBook>coluna("ID", x -> String.valueOf(x.getId())),
+                Estilo.<EBook>coluna("Título", EBook::getNome),
+                Estilo.<EBook>coluna("Categorias", x -> String.join(", ", x.getCategorias())),
+                Estilo.<EBook>coluna("Arquivo", EBook::getArquivo));
+        VBox.setVgrow(tabelaEbooks, Priority.ALWAYS);
+
+        TextField campoNome = new TextField();
+        campoNome.setPromptText("Título do e-book");
+        HBox.setHgrow(campoNome, Priority.ALWAYS);
+
+        TextField campoCategorias = new TextField();
+        campoCategorias.setPromptText("Categorias, separadas por vírgula");
+        HBox.setHgrow(campoCategorias, Priority.ALWAYS);
+
+        TextField campoArquivo = new TextField();
+        campoArquivo.setPromptText("Arquivo (ex.: books/clean_code.pdf)");
+        HBox.setHgrow(campoArquivo, Priority.ALWAYS);
+
+        // Ao clicar numa linha da tabela, os campos recebem os dados dela (para poder editar)
+        tabelaEbooks.getSelectionModel().selectedItemProperty().addListener((obs, antigo, novo) -> {
+            if (novo != null) {
+                campoNome.setText(novo.getNome());
+                campoCategorias.setText(String.join(", ", novo.getCategorias()));
+                campoArquivo.setText(novo.getArquivo());
+            }
+        });
+
+        Runnable limparCampos = () -> {
+            campoNome.clear();
+            campoCategorias.clear();
+            campoArquivo.clear();
+        };
+
+        Button adicionar = Estilo.botao("Adicionar e-book");
+        adicionar.setOnAction(e -> {
+            String nome = campoNome.getText().trim();
+            String arquivo = campoArquivo.getText().trim();
+            if (nome.isEmpty() || arquivo.isEmpty()) {
+                Estilo.aviso(AlertType.WARNING, "Digite o título e o caminho do arquivo.");
+                return;
+            }
+            admin.inserirEBook(new EBook(proximoIdEBook(), nome, separarCategorias(campoCategorias.getText()), arquivo));
+            atualizar();
+            limparCampos.run();
+        });
+
+        Button salvar = Estilo.botao("Salvar alterações");
+        salvar.setOnAction(e -> {
+            EBook selecionado = tabelaEbooks.getSelectionModel().getSelectedItem();
+            if (selecionado == null) {
+                Estilo.aviso(AlertType.WARNING, "Selecione um e-book na tabela.");
+                return;
+            }
+            String nome = campoNome.getText().trim();
+            String arquivo = campoArquivo.getText().trim();
+            if (nome.isEmpty() || arquivo.isEmpty()) {
+                Estilo.aviso(AlertType.WARNING, "Digite o título e o caminho do arquivo.");
+                return;
+            }
+            // mesmo id, dados novos
+            admin.atualizarEBook(new EBook(selecionado.getId(), nome, separarCategorias(campoCategorias.getText()), arquivo));
+            atualizar();
+            limparCampos.run();
+        });
+
+        Button excluir = Estilo.botaoPerigo("Excluir e-book selecionado");
+        excluir.setOnAction(e -> {
+            EBook selecionado = tabelaEbooks.getSelectionModel().getSelectedItem();
+            if (selecionado == null) {
+                Estilo.aviso(AlertType.WARNING, "Selecione um e-book na tabela.");
+                return;
+            }
+            if (Estilo.confirmar("Excluir \"" + selecionado.getNome() + "\"?")) {
+                admin.deletarEBook(selecionado.getId());
+                atualizar();
+                limparCampos.run();
+            }
+        });
+
+        HBox formulario = new HBox(10, campoNome, campoCategorias, campoArquivo);
+        HBox botoes = new HBox(10, adicionar, salvar, excluir);
+        VBox conteudo = new VBox(12, tabelaEbooks, formulario, botoes);
+        conteudo.setPadding(new Insets(16));
+        return new Tab("E-books", conteudo);
+    }
+
     // ---------- Utilitários ----------
 
     // Recarrega tudo que aparece na tela a partir dos dados
@@ -188,6 +330,8 @@ public class TelaAdmin extends BorderPane {
         List<Usuario> usuarios = new ArrayList<>();
         usuarios.addAll(b.getAlunos());
         usuarios.addAll(b.getServidores());
+        tabelaUsuarios.setItems(FXCollections.observableArrayList(usuarios));
+        tabelaEbooks.setItems(FXCollections.observableArrayList(b.getEbooks()));
         comboUsuario.setValue(null);
         comboUsuario.setItems(FXCollections.observableArrayList(usuarios));
 
@@ -200,6 +344,26 @@ public class TelaAdmin extends BorderPane {
 
         tabelaLivros.refresh();
         tabelaEmprestimos.refresh();
+        tabelaUsuarios.refresh();
+        tabelaEbooks.refresh();
+    }
+
+    // Novo e-book recebe o maior id existente + 1
+    private int proximoIdEBook() {
+        int maior = 0;
+        for (EBook x : b.getEbooks()) {
+            if (x.getId() > maior) maior = x.getId();
+        }
+        return maior + 1;
+    }
+
+    // "Romance, Clássico" -> ["Romance", "Clássico"]
+    private List<String> separarCategorias(String texto) {
+        List<String> categorias = new ArrayList<>();
+        for (String c : texto.split(",")) {
+            if (!c.trim().isEmpty()) categorias.add(c.trim());
+        }
+        return categorias;
     }
 
     // Novo livro recebe o maior id existente + 1

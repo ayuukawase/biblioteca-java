@@ -8,8 +8,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
 
-import java.awt.Desktop;
-import javafx.application.Platform;
 
 /**
  * Ponto de entrada. Sempre abre a tela de login primeiro
